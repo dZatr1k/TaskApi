@@ -55,6 +55,7 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
     : BackgroundService, ITaskEventPublisher
 {
     private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan PublishTimeout = TimeSpan.FromSeconds(10); // connect + publish + confirm
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -68,6 +69,9 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
 
     // Cancelled only when the drain timeout expires during shutdown; aborts a stuck connect/publish.
     private readonly CancellationTokenSource _hardStop = new();
+
+    // CloseAsync can be reached from the worker loop (after a failed publish) and from StopAsync at the same time.
+    private readonly SemaphoreSlim _closeLock = new(1, 1);
 
     private IConnection? _connection;
     private IChannel? _channel;
@@ -85,7 +89,7 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
         try
         {
             await foreach (var evt in _queue.Reader.ReadAllAsync(_hardStop.Token))
-                await PublishCoreAsync(evt, _hardStop.Token);
+                await PublishCoreAsync(evt); // never throws, except when _hardStop fires
         }
         catch (OperationCanceledException) when (_hardStop.IsCancellationRequested)
         {
@@ -93,8 +97,13 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
         }
     }
 
-    private async Task PublishCoreAsync(TaskCompletedEvent evt, CancellationToken ct)
+    private async Task PublishCoreAsync(TaskCompletedEvent evt)
     {
+        // Per-event budget so a broker that accepts the connection but never confirms cannot wedge the loop.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_hardStop.Token);
+        timeout.CancelAfter(PublishTimeout);
+        var ct = timeout.Token;
+
         // Wire format matches the spec: camelCase, priority as string, completedAt in UTC ("...Z").
         var payload = JsonSerializer.SerializeToUtf8Bytes(new
         {
@@ -120,11 +129,11 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
 
             logger.LogInformation("Published task.completed for {TaskId}", evt.TaskId);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (_hardStop.IsCancellationRequested)
         {
             throw; // shutdown, handled by the caller
         }
-        catch (Exception ex)
+        catch (Exception ex) // includes the per-event timeout and any stray OperationCanceledException from the client
         {
             // Fail silently for the API caller, loudly in the log: keep the payload so it can be replayed by hand.
             logger.LogError(ex, "RabbitMQ publish failed, task.completed for {TaskId} was NOT sent. Payload: {Payload}",
@@ -173,12 +182,25 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
 
         if (ExecuteTask is not null)
         {
-            var drained = await Task.WhenAny(ExecuteTask, Task.Delay(DrainTimeout, cancellationToken)) == ExecuteTask;
-            if (!drained)
+            try
+            {
+                await ExecuteTask.WaitAsync(DrainTimeout, cancellationToken);
+            }
+            catch (TimeoutException)
             {
                 logger.LogWarning("RabbitMQ drain timed out after {Timeout}s, {Count} event(s) dropped",
                     DrainTimeout.TotalSeconds, _queue.Reader.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogWarning("Host forced shutdown, {Count} event(s) dropped", _queue.Reader.Count);
+            }
+
+            if (!ExecuteTask.IsCompleted)
+            {
+                // Abort whatever the worker is stuck on and let it unwind before touching the connection.
                 await _hardStop.CancelAsync();
+                try { await ExecuteTask.WaitAsync(TimeSpan.FromSeconds(1)); } catch (Exception) { /* exiting anyway */ }
             }
         }
 
@@ -190,15 +212,27 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
     {
         try
         {
+            await _closeLock.WaitAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            return; // service already disposed by the host, nothing left to close
+        }
+
+        try
+        {
+            // A broker that stopped answering must not stall shutdown on a polite close handshake.
+            using var closeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
             if (_channel is not null)
             {
-                if (_channel.IsOpen) await _channel.CloseAsync();
+                if (_channel.IsOpen) await _channel.CloseAsync(cancellationToken: closeTimeout.Token);
                 await _channel.DisposeAsync();
             }
 
             if (_connection is not null)
             {
-                if (_connection.IsOpen) await _connection.CloseAsync();
+                if (_connection.IsOpen) await _connection.CloseAsync(cancellationToken: closeTimeout.Token);
                 await _connection.DisposeAsync();
             }
         }
@@ -210,12 +244,14 @@ public sealed class RabbitMqPublisher(IOptions<RabbitMqOptions> options, ILogger
         {
             _channel = null;
             _connection = null;
+            _closeLock.Release();
         }
     }
 
     public override void Dispose()
     {
         _hardStop.Dispose();
+        _closeLock.Dispose();
         base.Dispose();
     }
 

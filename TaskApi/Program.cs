@@ -207,20 +207,22 @@ public partial class Program
     private static readonly System.Linq.Expressions.Expression<Func<TaskItem, int>> PriorityRank =
         t => t.Priority == Priority.High ? 2 : t.Priority == Priority.Medium ? 1 : 0;
 
-    /// <summary>Case-insensitive enum parse; null/empty input is valid and yields null.</summary>
+    /// <summary>
+    /// Case-insensitive enum parse by name only; null/empty input is valid and yields null.
+    /// (Enum.TryParse would also accept "2" and "Low,High", which is not what a query string should allow.)
+    /// </summary>
     private static bool TryParseEnum<TEnum>(string? value, out TEnum? result) where TEnum : struct, Enum
     {
         result = null;
         if (string.IsNullOrWhiteSpace(value))
             return true;
 
-        if (Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed))
-        {
-            result = parsed;
-            return true;
-        }
+        var name = Enum.GetNames<TEnum>().FirstOrDefault(n => n.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (name is null)
+            return false;
 
-        return false;
+        result = Enum.Parse<TEnum>(name);
+        return true;
     }
 }
 
