@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace TaskApi;
 
 public enum Priority
@@ -28,9 +26,8 @@ public class TaskItem
     /// <summary>
     /// Optimistic concurrency token. PostgreSQL has no `rowversion` type, so Npgsql maps
     /// <c>IsRowVersion()</c> on a <see cref="uint"/> to the system column <c>xmin</c>,
-    /// which changes on every row update. Hidden from API responses.
+    /// which changes on every row update. Never leaves the service (see <see cref="TaskResponse"/>).
     /// </summary>
-    [JsonIgnore]
     public uint RowVersion { get; set; }
 }
 
@@ -38,6 +35,19 @@ public class TaskItem
 
 /// <summary>POST /tasks body. Priority is optional and defaults to Medium.</summary>
 public record CreateTaskRequest(string? Title, Priority? Priority);
+
+/// <summary>Wire shape of a task; keeps the entity and its concurrency token out of the API.</summary>
+public record TaskResponse(
+    Guid Id,
+    string Title,
+    bool IsCompleted,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt,
+    Priority Priority)
+{
+    public static TaskResponse From(TaskItem t) =>
+        new(t.Id, t.Title, t.IsCompleted, t.CreatedAt, t.CompletedAt, t.Priority);
+}
 
 public enum TaskSortBy
 {

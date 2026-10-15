@@ -90,9 +90,9 @@ tasks.MapPost("", async (CreateTaskRequest request, TaskDbContext db) =>
     db.Tasks.Add(task);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/tasks/{task.Id}", task);
+    return Results.Created($"/tasks/{task.Id}", TaskResponse.From(task));
 })
-.Produces<TaskItem>(StatusCodes.Status201Created)
+.Produces<TaskResponse>(StatusCodes.Status201Created)
 .ProducesValidationProblem();
 
 // GET /tasks
@@ -146,9 +146,9 @@ tasks.MapGet("", async ([AsParameters] TaskQuery query, TaskDbContext db, HttpRe
         items = items.Take(limit);
 
     response.Headers["X-Total-Count"] = total.ToString();
-    return Results.Ok(await items.ToListAsync());
+    return Results.Ok((await items.ToListAsync()).Select(TaskResponse.From));
 })
-.Produces<List<TaskItem>>()
+.Produces<List<TaskResponse>>()
 .ProducesValidationProblem();
 
 // PUT /tasks/{id}/complete
@@ -179,9 +179,9 @@ tasks.MapPut("/{id}/complete", async (Guid id, TaskDbContext db, ITaskEventPubli
     // Published strictly AFTER the DB commit: if the DB fails, no message is sent for nothing.
     publisher.Publish(new TaskCompletedEvent(task.Id, task.Title, task.CompletedAt.Value, task.Priority));
 
-    return Results.Ok(task);
+    return Results.Ok(TaskResponse.From(task));
 })
-.Produces<TaskItem>()
+.Produces<TaskResponse>()
 .ProducesProblem(StatusCodes.Status404NotFound)
 .ProducesProblem(StatusCodes.Status409Conflict);
 

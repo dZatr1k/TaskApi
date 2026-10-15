@@ -60,7 +60,7 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 | Файл                           | Что внутри                                                   |
 |--------------------------------|--------------------------------------------------------------|
 | `TaskApi/Program.cs`           | DI, миграция при старте, все эндпоинты (по `#region`)        |
-| `TaskApi/TaskItem.cs`          | сущность, enum `Priority`, DTO запроса                       |
+| `TaskApi/TaskItem.cs`          | сущность, enum `Priority`, DTO запроса/ответа и query        |
 | `TaskApi/TaskDbContext.cs`     | маппинг, RowVersion через `xmin`                             |
 | `TaskApi/RabbitMqService.cs`   | контракт события и публикатор                                |
 | `TaskApi/Migrations/`          | EF Core миграции                                             |
@@ -93,7 +93,6 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 
 - **Outbox** вместо in-memory очереди: запись события в таблицу в той же транзакции, что и `IsCompleted = true`,
   и отдельный воркер-отправитель. Сейчас при падении процесса между commit и publish событие теряется.
-- **Ответные DTO** вместо отдачи сущности напрямую (пока `RowVersion` просто скрыт `[JsonIgnore]`).
 - Разобраться, почему два параллельных `WebApplicationFactory` иногда падают на cleanup
   (`ObjectDisposedException`) — пока классы тестов выполняются последовательно
   (`TaskApi.Tests/AssemblyInfo.cs`).
@@ -111,3 +110,4 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 8. ✅ Hardening publisher после ревью (таймауты, чужие OCE, сериализованный Close), строгий парсинг enum в query.
 9. ✅ Тест graceful shutdown.
 10. ✅ Тест фильтрации/сортировки/пагинации GET /tasks.
+11. ✅ Ответные DTO (`TaskResponse`) вместо отдачи сущности.
