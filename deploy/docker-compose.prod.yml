@@ -1,0 +1,63 @@
+# Production stack on the VPS (copied to /opt/taskapi/docker-compose.yml by the deploy job).
+# Everything binds to 127.0.0.1 only; nginx on the host terminates TLS and proxies to :8080.
+# Secrets come from /opt/taskapi/.env (never committed): POSTGRES_PASSWORD, RABBITMQ_PASSWORD, TASKAPI_TAG.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskapi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: taskapi
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # the migration bundle runs on the host and connects here
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskapi"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+  rabbitmq:
+    image: rabbitmq:3-alpine   # no management UI in production
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: taskapi
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  api:
+    image: taskapi:${TASKAPI_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=taskapi;Username=taskapi;Password=${POSTGRES_PASSWORD}"
+      Database__MigrateOnStartup: "false"   # migrations are applied by deploy.sh before the API starts
+      RabbitMq__Host: rabbitmq
+      RabbitMq__UserName: taskapi
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  pgdata:
+  rabbitdata:

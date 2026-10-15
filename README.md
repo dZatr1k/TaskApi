@@ -99,6 +99,21 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 migration bundle (`efbundle`, SDK на сервере не нужен), прогоняет его на чистом PostgreSQL и публикует как артефакт.
 На деплое: `./efbundle --connection "<prod>"`, затем выкатка нового образа.
 
+## Деплой
+
+Прод: https://api.finito.zatr1k.pro (Swagger: `/swagger`, health: `/health`). Автодеплой на каждый зелёный push в `main`
+(job `deploy` в `.github/workflows/ci.yml`, запускается после `test` и `migrations`):
+
+1. образ собирается в CI и переносится на VPS как tar по SSH (без registry);
+2. на сервере `deploy/deploy.sh`: поднимает PostgreSQL и RabbitMQ из `deploy/docker-compose.prod.yml`,
+   накатывает миграции bundle'ом, затем перезапускает контейнер API с новым тегом и ждёт `/health`;
+3. job завершает smoke-тест по HTTPS.
+
+На сервере: Docker Compose в `/opt/taskapi` (все порты только на 127.0.0.1, пароли в `.env`),
+nginx как reverse proxy с сертификатом Let's Encrypt (`deploy/nginx.api.finito.zatr1k.pro.conf`).
+Секреты в GitHub: `DEPLOY_HOST`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`.
+Аутентификации в API нет — это тестовое, публичный URL живёт на время собеседования.
+
 ## Что доделал бы при наличии времени
 
 - **Outbox** вместо in-memory очереди: запись события в таблицу в той же транзакции, что и `IsCompleted = true`,
@@ -124,3 +139,4 @@ migration bundle (`efbundle`, SDK на сервере не нужен), прог
 12. ✅ `GET /tasks/{id}` — цель `Location` из POST.
 13. ✅ `/health` с проверкой PostgreSQL.
 14. ✅ Миграции как отдельный шаг: проверка модели, migration bundle и его прогон в CI, флаг `MigrateOnStartup`.
+15. ✅ Автодеплой на VPS (Docker Compose + nginx + Let's Encrypt) по push в `main`.

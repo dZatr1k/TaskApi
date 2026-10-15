@@ -65,3 +65,47 @@ jobs:
         with:
           name: efbundle-linux-x64
           path: efbundle
+
+  # Auto-deploy to the VPS on every green push to main: image is built here, shipped as a tarball over
+  # SSH (no registry needed), migrations applied with the bundle, then the API container is rolled out.
+  deploy:
+    needs: [test, migrations]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: efbundle-linux-x64
+          path: out
+
+      - name: Build image
+        run: |
+          docker build -f TaskApi/Dockerfile -t taskapi:${{ github.sha }} .
+          docker save taskapi:${{ github.sha }} | gzip > out/image.tar.gz
+          ls -lh out
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+
+      - name: Ship and deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          scp out/image.tar.gz out/efbundle deploy/deploy.sh root@"$HOST":/opt/taskapi/
+          scp deploy/docker-compose.prod.yml root@"$HOST":/opt/taskapi/docker-compose.yml
+          ssh root@"$HOST" "bash /opt/taskapi/deploy.sh ${{ github.sha }}"
+
+      - name: Smoke test over HTTPS
+        run: curl -fsS --retry 5 --retry-delay 3 https://api.finito.zatr1k.pro/health && echo
