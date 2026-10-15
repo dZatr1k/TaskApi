@@ -24,3 +24,44 @@ jobs:
         with:
           name: test-results
           path: '**/TestResults/*.trx'
+
+  # Migrations as a separate deploy step: verify the model matches the migrations, build a self-contained
+  # migration bundle (no SDK needed on the server), prove it applies to a fresh PostgreSQL, publish it.
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taskapi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - run: dotnet tool install --global dotnet-ef --version 9.0.9
+      - run: dotnet build TaskApi/TaskApi.csproj --configuration Release
+
+      # Fails the build if someone changed the entity mapping without adding a migration.
+      - run: dotnet ef migrations has-pending-model-changes --project TaskApi --configuration Release --no-build
+
+      - run: dotnet ef migrations bundle --project TaskApi --configuration Release --self-contained -r linux-x64 -o efbundle --force
+
+      # Dry run against a throw-away database: the same command the deploy step would run on the server.
+      - run: ./efbundle --connection "Host=localhost;Port=5432;Database=taskapi;Username=postgres;Password=postgres"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: efbundle-linux-x64
+          path: efbundle

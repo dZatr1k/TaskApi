@@ -91,6 +91,14 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
   `OperationCanceledException` из клиента не роняют цикл (иначе `BackgroundService` остановил бы хост),
   закрытие канала/соединения ограничено 2 с и сериализовано семафором.
 
+## Миграции
+
+Локально и в тестах миграции применяются при старте (`Database:MigrateOnStartup`, по умолчанию `true`).
+Для прода флаг выключается, а миграции идут отдельным шагом: job `migrations` в CI проверяет, что модель
+совпадает с миграциями (`dotnet ef migrations has-pending-model-changes`), собирает self-contained
+migration bundle (`efbundle`, SDK на сервере не нужен), прогоняет его на чистом PostgreSQL и публикует как артефакт.
+На деплое: `./efbundle --connection "<prod>"`, затем выкатка нового образа.
+
 ## Что доделал бы при наличии времени
 
 - **Outbox** вместо in-memory очереди: запись события в таблицу в той же транзакции, что и `IsCompleted = true`,
@@ -99,7 +107,6 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
   `ObjectDisposedException` — ровно до того, как `CloseAsync` publisher'а получил защиту от уже освобождённого
   семафора; после этого в трёх параллельных прогонах не воспроизвелось. Оставил последовательный запуск
   (`TaskApi.Tests/AssemblyInfo.cs`): детерминизм и вдвое меньше контейнеров одновременно.
-- Миграции как отдельный шаг деплоя, а не при старте приложения.
 
 ## Итерации
 
@@ -116,3 +123,4 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 11. ✅ Ответные DTO (`TaskResponse`) вместо отдачи сущности.
 12. ✅ `GET /tasks/{id}` — цель `Location` из POST.
 13. ✅ `/health` с проверкой PostgreSQL.
+14. ✅ Миграции как отдельный шаг: проверка модели, migration bundle и его прогон в CI, флаг `MigrateOnStartup`.

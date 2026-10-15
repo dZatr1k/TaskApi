@@ -36,10 +36,12 @@ var app = builder.Build();
 
 #region Database migration on startup
 
-// Keeps "docker compose up && dotnet run" a one-step setup. Fine for a test assignment;
-// in production migrations would run as a separate deploy step.
-using (var scope = app.Services.CreateScope())
+// Keeps "docker compose up && dotnet run" a one-step setup locally. In production set
+// Database:MigrateOnStartup=false and apply the migration bundle built by CI as a separate deploy step
+// (see .github/workflows/ci.yml, job "migrations").
+if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 {
+    using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<TaskDbContext>().Database.MigrateAsync();
 }
 
