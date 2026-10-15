@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.github/
+.vs/
+.idea/
+TaskApi.Tests/

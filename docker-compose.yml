@@ -1,4 +1,5 @@
-# Local infrastructure only; the API itself runs with `dotnet run`.
+# `docker compose up -d`                -> only PostgreSQL + RabbitMQ (run the API with `dotnet run`)
+# `docker compose --profile app up -d`  -> same plus the API in a container on http://localhost:8080
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,9 +9,30 @@ services:
       POSTGRES_DB: taskapi
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     ports:
       - "5672:5672"
       - "15672:15672"   # management UI: guest / guest
+
+  api:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: TaskApi/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=taskapi;Username=postgres;Password=postgres"
+      RabbitMq__Host: rabbitmq
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started

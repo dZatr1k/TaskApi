@@ -1,0 +1,42 @@
+### Sample requests (VS / Rider / VS Code REST Client). Port from Properties/launchSettings.json.
+@host = http://localhost:5000
+
+### Create (201)
+# @name create
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Buy milk",
+  "priority": "High"
+}
+
+### Create with default priority (201, Medium)
+POST {{host}}/tasks
+Content-Type: application/json
+
+{ "title": "Walk the dog" }
+
+### Validation: empty title (400)
+POST {{host}}/tasks
+Content-Type: application/json
+
+{ "title": "   " }
+
+### Validation: unknown priority (400 from model binding)
+POST {{host}}/tasks
+Content-Type: application/json
+
+{ "title": "x", "priority": "Urgent" }
+
+### List all (200, newest first, X-Total-Count header)
+GET {{host}}/tasks
+
+### List: open High-priority tasks sorted by title, first page
+GET {{host}}/tasks?isCompleted=false&priority=high&sortBy=title&desc=false&offset=0&limit=10
+
+### Complete (200; second call -> 409)
+PUT {{host}}/tasks/{{create.response.body.$.id}}/complete
+
+### Delete (204; second call -> 404)
+DELETE {{host}}/tasks/{{create.response.body.$.id}}

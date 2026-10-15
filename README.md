@@ -12,6 +12,13 @@ cd TaskApi && dotnet run      # миграции применяются при �
 ```
 
 Swagger UI: http://localhost:5000/swagger (порт — см. `Properties/launchSettings.json`).
+Готовые запросы — в `TaskApi/TaskApi.http`.
+
+Полностью в Docker (API на http://localhost:8080):
+
+```bash
+docker compose --profile app up -d --build
+```
 
 Строки подключения — в `TaskApi/appsettings.json`.
 
