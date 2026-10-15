@@ -11,7 +11,7 @@ docker compose up -d          # PostgreSQL :5432 и RabbitMQ :5672 (UI: http://l
 cd TaskApi && dotnet run      # миграции применяются при старте
 ```
 
-Swagger UI: http://localhost:5000/swagger (порт — см. `Properties/launchSettings.json`).
+Swagger UI: http://localhost:5220/swagger (порт — см. `Properties/launchSettings.json`).
 Готовые запросы — в `TaskApi/TaskApi.http`.
 
 Полностью в Docker (API на http://localhost:8080):
@@ -50,8 +50,8 @@ graceful shutdown publisher'а.
 | DELETE | `/tasks/{id}`          | 204; 404                                 |
 
 ```bash
-curl -X POST localhost:5000/tasks -H 'Content-Type: application/json' -d '{"title":"Buy milk","priority":"High"}'
-curl -X PUT  localhost:5000/tasks/<id>/complete
+curl -X POST localhost:5220/tasks -H 'Content-Type: application/json' -d '{"title":"Buy milk","priority":"High"}'
+curl -X PUT  localhost:5220/tasks/<id>/complete
 ```
 
 ## Где что лежит
