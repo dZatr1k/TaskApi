@@ -38,6 +38,7 @@ graceful shutdown publisher'а.
 | `Concurrent_complete_calls_yield_one_200_and_the_rest_409`   | 10 параллельных `/complete`: ровно один 200, остальные 409      |
 | `Create_with_invalid_title_returns_400` / `..._over_200_chars` | валидация Title                                               |
 | `RabbitMqOutageTest` (отдельная фикстура, брокер на мёртвом порту) | `/complete` возвращает 200 и задача сохранена, даже если публикация упала |
+| `GracefulShutdownTest` (отдельная фикстура) | `/complete` и сразу `StopApplication()` (путь Ctrl+C) — сообщение всё равно доходит до RabbitMQ |
 
 ## API
 
@@ -92,8 +93,6 @@ curl -X PUT  localhost:5000/tasks/<id>/complete
 - **Outbox** вместо in-memory очереди: запись события в таблицу в той же транзакции, что и `IsCompleted = true`,
   и отдельный воркер-отправитель. Сейчас при падении процесса между commit и publish событие теряется.
 - **Ответные DTO** вместо отдачи сущности напрямую (пока `RowVersion` просто скрыт `[JsonIgnore]`).
-- **Тест graceful shutdown** в наборе (сейчас проверено вручную: Ctrl+C сразу после `/complete`, сообщение
-  доходит, процесс завершается).
 - Разобраться, почему два параллельных `WebApplicationFactory` иногда падают на cleanup
   (`ObjectDisposedException`) — пока классы тестов выполняются последовательно
   (`TaskApi.Tests/AssemblyInfo.cs`).
@@ -105,3 +104,8 @@ curl -X PUT  localhost:5000/tasks/<id>/complete
 2. ✅ Реальный RabbitMQ publisher: неблокирующая публикация, fail silently, graceful shutdown.
 3. ✅ Интеграционные тесты на Testcontainers: создать → завершить → сообщение в RabbitMQ; 409 на гонке; 400 на Title.
 4. ✅ Бонусы: фильтрация/сортировка/offset-limit в GET, ошибки в формате ProblemDetails (RFC 7807), Swagger UI.
+5. ✅ CI на GitHub Actions (тесты на Testcontainers в ubuntu-runner).
+6. ✅ Тест «брокер недоступен → задача всё равно завершена».
+7. ✅ Dockerfile + compose-профиль `app`, `TaskApi.http`.
+8. ✅ Hardening publisher после ревью (таймауты, чужие OCE, сериализованный Close), строгий парсинг enum в query.
+9. ✅ Тест graceful shutdown.
