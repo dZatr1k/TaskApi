@@ -114,3 +114,5 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 9. ✅ Тест graceful shutdown.
 10. ✅ Тест фильтрации/сортировки/пагинации GET /tasks.
 11. ✅ Ответные DTO (`TaskResponse`) вместо отдачи сущности.
+12. ✅ `GET /tasks/{id}` — цель `Location` из POST.
+13. ✅ `/health` с проверкой PostgreSQL.
