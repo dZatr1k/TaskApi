@@ -11,6 +11,22 @@ cd TaskApi && dotnet run      # миграции применяются при �
 
 Строки подключения — в `TaskApi/appsettings.json`.
 
+## Тесты
+
+```bash
+dotnet test
+```
+
+Нужен запущенный Docker: тесты через Testcontainers поднимают свои PostgreSQL и RabbitMQ (те же образы, что в
+`docker-compose.yml`), API стартует in-process через `WebApplicationFactory`. Остановка фабрики гоняет и
+graceful shutdown publisher'а.
+
+| Тест (`TaskApi.Tests/CompleteTaskIntegrationTest.cs`)        | Что проверяет                                                   |
+|--------------------------------------------------------------|-----------------------------------------------------------------|
+| `Create_then_complete_publishes_task_completed_to_RabbitMq`  | создать → завершить → `TestConsumer` получил сообщение с нужными полями |
+| `Concurrent_complete_calls_yield_one_200_and_the_rest_409`   | 10 параллельных `/complete`: ровно один 200, остальные 409      |
+| `Create_with_invalid_title_returns_400` / `..._over_200_chars` | валидация Title                                               |
+
 ## API
 
 | Метод  | Эндпоинт               | Ответы                                   |
@@ -34,6 +50,8 @@ curl -X PUT  localhost:5000/tasks/<id>/complete
 | `TaskApi/TaskDbContext.cs`     | маппинг, RowVersion через `xmin`                             |
 | `TaskApi/RabbitMqService.cs`   | контракт события и публикатор                                |
 | `TaskApi/Migrations/`          | EF Core миграции                                             |
+| `TaskApi.Tests/TaskApiFixture.cs` | Testcontainers + `WebApplicationFactory`, `TestConsumer` для RabbitMQ |
+| `TaskApi.Tests/CompleteTaskIntegrationTest.cs` | интеграционные тесты                            |
 
 ## Решения
 
@@ -58,5 +76,5 @@ curl -X PUT  localhost:5000/tasks/<id>/complete
 
 1. ✅ Ядро API: сущность, БД, эндпоинты, валидация, 409 через RowVersion. Публикатор — заглушка в лог.
 2. ✅ Реальный RabbitMQ publisher: неблокирующая публикация, fail silently, graceful shutdown.
-3. ⏳ Интеграционный тест: создать → завершить → проверить сообщение.
+3. ✅ Интеграционные тесты на Testcontainers: создать → завершить → сообщение в RabbitMQ; 409 на гонке; 400 на Title.
 4. ⏳ Бонусы: пагинация/фильтрация, Swagger.

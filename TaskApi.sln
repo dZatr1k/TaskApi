@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskApi", "TaskApi\TaskApi.csproj", "{197592E1-2806-4969-AE6F-11C27B3BCCE6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskApi.Tests", "TaskApi.Tests\TaskApi.Tests.csproj", "{72954F27-F513-4581-890C-89754FFE4565}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{197592E1-2806-4969-AE6F-11C27B3BCCE6}.Release|x64.Build.0 = Release|Any CPU
 		{197592E1-2806-4969-AE6F-11C27B3BCCE6}.Release|x86.ActiveCfg = Release|Any CPU
 		{197592E1-2806-4969-AE6F-11C27B3BCCE6}.Release|x86.Build.0 = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|x64.Build.0 = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Debug|x86.Build.0 = Debug|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|x64.ActiveCfg = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|x64.Build.0 = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|x86.ActiveCfg = Release|Any CPU
+		{72954F27-F513-4581-890C-89754FFE4565}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
