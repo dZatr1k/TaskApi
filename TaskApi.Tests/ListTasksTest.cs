@@ -7,6 +7,15 @@ namespace TaskApi.Tests;
 public sealed class ListTasksTest(TaskApiFixture app) : IClassFixture<TaskApiFixture>
 {
     [Fact]
+    public async Task Health_endpoint_reports_healthy_when_database_answers()
+    {
+        var response = await app.CreateClient().GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task Filters_sorts_and_pages()
     {
         var client = app.CreateClient();

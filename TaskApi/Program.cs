@@ -26,6 +26,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// GET /health -> 200 "Healthy" when PostgreSQL answers; RabbitMQ is deliberately not part of it,
+// because the API must keep working (and completing tasks) while the broker is down.
+builder.Services.AddHealthChecks().AddDbContextCheck<TaskDbContext>();
+
 #endregion
 
 var app = builder.Build();
@@ -57,6 +61,8 @@ app.UseSwaggerUI(); // http://localhost:<port>/swagger
 #endregion
 
 #region Endpoints
+
+app.MapHealthChecks("/health");
 
 var tasks = app.MapGroup("/tasks").WithTags("Tasks");
 

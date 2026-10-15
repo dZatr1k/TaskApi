@@ -50,6 +50,7 @@ graceful shutdown publisher'а.
 | GET    | `/tasks/{id}`          | 200 + задача; 404 (сюда указывает `Location` из POST) |
 | PUT    | `/tasks/{id}/complete` | 200 + задача; 404; 409 если уже завершена или гонка |
 | DELETE | `/tasks/{id}`          | 204; 404                                 |
+| GET    | `/health`              | 200 `Healthy` если отвечает PostgreSQL (RabbitMQ намеренно не входит: API должен жить без брокера) |
 
 ```bash
 curl -X POST localhost:5220/tasks -H 'Content-Type: application/json' -d '{"title":"Buy milk","priority":"High"}'
