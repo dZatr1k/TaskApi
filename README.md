@@ -39,6 +39,7 @@ graceful shutdown publisher'а.
 | `Create_with_invalid_title_returns_400` / `..._over_200_chars` | валидация Title                                               |
 | `RabbitMqOutageTest` (отдельная фикстура, брокер на мёртвом порту) | `/complete` возвращает 200 и задача сохранена, даже если публикация упала |
 | `GracefulShutdownTest` (отдельная фикстура) | `/complete` и сразу `StopApplication()` (путь Ctrl+C) — сообщение всё равно доходит до RabbitMQ |
+| `ListTasksTest` (отдельная фикстура) | порядок по умолчанию, сортировка по рангу приоритета, фильтр, offset/limit + `X-Total-Count`, 400 на мусор в query |
 
 ## API
 
@@ -109,3 +110,4 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 7. ✅ Dockerfile + compose-профиль `app`, `TaskApi.http`.
 8. ✅ Hardening publisher после ревью (таймауты, чужие OCE, сериализованный Close), строгий парсинг enum в query.
 9. ✅ Тест graceful shutdown.
+10. ✅ Тест фильтрации/сортировки/пагинации GET /tasks.
