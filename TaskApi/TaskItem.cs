@@ -39,4 +39,24 @@ public class TaskItem
 /// <summary>POST /tasks body. Priority is optional and defaults to Medium.</summary>
 public record CreateTaskRequest(string? Title, Priority? Priority);
 
+public enum TaskSortBy
+{
+    CreatedAt,
+    Title,
+    Priority
+}
+
+/// <summary>
+/// GET /tasks query string. Everything is optional: no parameters = all tasks, newest first.
+/// Bound with [AsParameters]. Priority/SortBy are strings because the built-in enum binding is
+/// case-sensitive ("high" would be rejected); they are parsed case-insensitively in the endpoint.
+/// </summary>
+public record TaskQuery(
+    bool? IsCompleted,
+    string? Priority,
+    string? SortBy,
+    bool? Desc,
+    int? Offset,
+    int? Limit);
+
 #endregion

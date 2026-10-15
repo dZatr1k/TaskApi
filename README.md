@@ -9,6 +9,8 @@ docker compose up -d          # PostgreSQL :5432 и RabbitMQ :5672 (UI: http://l
 cd TaskApi && dotnet run      # миграции применяются при старте
 ```
 
+Swagger UI: http://localhost:5000/swagger (порт — см. `Properties/launchSettings.json`).
+
 Строки подключения — в `TaskApi/appsettings.json`.
 
 ## Тесты
@@ -32,7 +34,7 @@ graceful shutdown publisher'а.
 | Метод  | Эндпоинт               | Ответы                                   |
 |--------|------------------------|------------------------------------------|
 | POST   | `/tasks`               | 201 + задача; 400 при невалидном Title/Priority |
-| GET    | `/tasks`               | 200 + все задачи (новые первыми)         |
+| GET    | `/tasks`               | 200 + все задачи (новые первыми); опционально `?isCompleted=&priority=&sortBy=createdAt\|title\|priority&desc=&offset=&limit=`, заголовок `X-Total-Count` |
 | PUT    | `/tasks/{id}/complete` | 200 + задача; 404; 409 если уже завершена или гонка |
 | DELETE | `/tasks/{id}`          | 204; 404                                 |
 
@@ -77,4 +79,4 @@ curl -X PUT  localhost:5000/tasks/<id>/complete
 1. ✅ Ядро API: сущность, БД, эндпоинты, валидация, 409 через RowVersion. Публикатор — заглушка в лог.
 2. ✅ Реальный RabbitMQ publisher: неблокирующая публикация, fail silently, graceful shutdown.
 3. ✅ Интеграционные тесты на Testcontainers: создать → завершить → сообщение в RabbitMQ; 409 на гонке; 400 на Title.
-4. ⏳ Бонусы: пагинация/фильтрация, Swagger.
+4. ✅ Бонусы: фильтрация/сортировка/offset-limit в GET, ошибки в формате ProblemDetails (RFC 7807), Swagger UI.
