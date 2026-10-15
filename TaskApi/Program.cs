@@ -13,7 +13,12 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 builder.Services.AddDbContext<TaskDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
-builder.Services.AddSingleton<ITaskEventPublisher, LoggingTaskEventPublisher>();
+// One singleton serves both roles: the endpoints enqueue through ITaskEventPublisher,
+// the host runs it as a background service that drains the queue into RabbitMQ.
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(RabbitMqOptions.Section));
+builder.Services.AddSingleton<RabbitMqPublisher>();
+builder.Services.AddSingleton<ITaskEventPublisher>(sp => sp.GetRequiredService<RabbitMqPublisher>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqPublisher>());
 
 #endregion
 
