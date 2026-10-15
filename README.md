@@ -32,7 +32,7 @@ dotnet test
 `docker-compose.yml`), API стартует in-process через `WebApplicationFactory`. Остановка фабрики гоняет и
 graceful shutdown publisher'а.
 
-| Тест (`TaskApi.Tests/CompleteTaskIntegrationTest.cs`)        | Что проверяет                                                   |
+| Тест (`TaskApi.Tests/`, по файлу на класс)                   | Что проверяет                                                   |
 |--------------------------------------------------------------|-----------------------------------------------------------------|
 | `Create_then_complete_publishes_task_completed_to_RabbitMq`  | создать → завершить → `TestConsumer` получил сообщение с нужными полями |
 | `Concurrent_complete_calls_yield_one_200_and_the_rest_409`   | 10 параллельных `/complete`: ровно один 200, остальные 409      |
@@ -65,7 +65,7 @@ curl -X PUT  localhost:5220/tasks/<id>/complete
 | `TaskApi/RabbitMqService.cs`   | контракт события и публикатор                                |
 | `TaskApi/Migrations/`          | EF Core миграции                                             |
 | `TaskApi.Tests/TaskApiFixture.cs` | Testcontainers + `WebApplicationFactory`, `TestConsumer` для RabbitMQ |
-| `TaskApi.Tests/CompleteTaskIntegrationTest.cs` | интеграционные тесты                            |
+| `TaskApi.Tests/*Test.cs`       | интеграционные тесты, по файлу на сценарий                   |
 
 ## Решения
 
