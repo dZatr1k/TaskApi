@@ -15,7 +15,7 @@ namespace TaskApi.Tests;
 /// Real PostgreSQL and RabbitMQ in Docker (Testcontainers) + the API in-process.
 /// Requires a running Docker daemon. Shared by all tests in a class (IClassFixture).
 /// </summary>
-public sealed class TaskApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
+public class TaskApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")

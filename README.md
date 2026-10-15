@@ -30,6 +30,7 @@ graceful shutdown publisher'а.
 | `Create_then_complete_publishes_task_completed_to_RabbitMq`  | создать → завершить → `TestConsumer` получил сообщение с нужными полями |
 | `Concurrent_complete_calls_yield_one_200_and_the_rest_409`   | 10 параллельных `/complete`: ровно один 200, остальные 409      |
 | `Create_with_invalid_title_returns_400` / `..._over_200_chars` | валидация Title                                               |
+| `RabbitMqOutageTest` (отдельная фикстура, брокер на мёртвом порту) | `/complete` возвращает 200 и задача сохранена, даже если публикация упала |
 
 ## API
 
