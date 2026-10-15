@@ -1,5 +1,7 @@
 # TaskApi
 
+[![CI](https://github.com/dZatr1k/TaskApi/actions/workflows/ci.yml/badge.svg)](https://github.com/dZatr1k/TaskApi/actions/workflows/ci.yml)
+
 Тестовое задание: .NET 9 Minimal API + PostgreSQL (EF Core) + RabbitMQ (publish only).
 
 ## Запуск
