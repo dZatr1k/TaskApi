@@ -35,6 +35,9 @@ GET {{host}}/tasks
 ### List: open High-priority tasks sorted by title, first page
 GET {{host}}/tasks?isCompleted=false&priority=high&sortBy=title&desc=false&offset=0&limit=10
 
+### Get by id (200; unknown id -> 404)
+GET {{host}}/tasks/{{create.response.body.$.id}}
+
 ### Complete (200; second call -> 409)
 PUT {{host}}/tasks/{{create.response.body.$.id}}/complete
 

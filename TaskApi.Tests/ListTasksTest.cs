@@ -18,6 +18,11 @@ public sealed class ListTasksTest(TaskApiFixture app) : IClassFixture<TaskApiFix
         var all = (await client.GetFromJsonAsync<List<TaskDto>>("/tasks"))!;
         Assert.Equal(["a", "c", "b"], all.Select(t => t.Title));
 
+        // By id (the Location header of POST points here), unknown id -> 404.
+        var one = await client.GetFromJsonAsync<TaskDto>($"/tasks/{all[0].Id}");
+        Assert.Equal("a", one!.Title);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/tasks/{Guid.NewGuid()}")).StatusCode);
+
         // Sort by priority rank, not alphabetically (High > Medium > Low).
         var byPriority = (await client.GetFromJsonAsync<List<TaskDto>>("/tasks?sortBy=priority"))!;
         Assert.Equal(["High", "Medium", "Low"], byPriority.Select(t => t.Priority));

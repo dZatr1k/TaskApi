@@ -151,6 +151,15 @@ tasks.MapGet("", async ([AsParameters] TaskQuery query, TaskDbContext db, HttpRe
 .Produces<List<TaskResponse>>()
 .ProducesValidationProblem();
 
+// GET /tasks/{id} (target of the Location header returned by POST)
+tasks.MapGet("/{id}", async (Guid id, TaskDbContext db) =>
+{
+    var task = await db.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
+    return task is null ? Results.NotFound() : Results.Ok(TaskResponse.From(task));
+})
+.Produces<TaskResponse>()
+.ProducesProblem(StatusCodes.Status404NotFound);
+
 // PUT /tasks/{id}/complete
 tasks.MapPut("/{id}/complete", async (Guid id, TaskDbContext db, ITaskEventPublisher publisher) =>
 {

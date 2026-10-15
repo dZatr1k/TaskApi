@@ -47,6 +47,7 @@ graceful shutdown publisher'а.
 |--------|------------------------|------------------------------------------|
 | POST   | `/tasks`               | 201 + задача; 400 при невалидном Title/Priority |
 | GET    | `/tasks`               | 200 + все задачи (новые первыми); опционально `?isCompleted=&priority=&sortBy=createdAt\|title\|priority&desc=&offset=&limit=`, заголовок `X-Total-Count` |
+| GET    | `/tasks/{id}`          | 200 + задача; 404 (сюда указывает `Location` из POST) |
 | PUT    | `/tasks/{id}/complete` | 200 + задача; 404; 409 если уже завершена или гонка |
 | DELETE | `/tasks/{id}`          | 204; 404                                 |
 
